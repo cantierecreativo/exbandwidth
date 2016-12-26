@@ -1,0 +1,7 @@
+/_build
+/config/*.secrets.exs
+/config/snmp/*.conf
+/config/snmp_db/*
+/cover
+/deps
+/doc

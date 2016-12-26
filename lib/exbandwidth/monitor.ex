@@ -33,11 +33,20 @@ defmodule Exbandwidth.Monitor do
     snmpm.sync_get('default_user', 'default_agent', [oids])
   end
 
+  defp extract_result({:error, {:timeout, _t}}) do
+    :timeout
+  end
   defp extract_result({:ok, answer, _}) do
     {_, _, [{_, _, _, result, _}]} = answer
     result
   end
 
+  defp handle_result(:noSuchInstance, _state) do
+    raise "Unknown interface"
+  end
+  defp handle_result(:timeout, {snmpm, if_index, direction, previous}) do
+    loop({snmpm, if_index, direction, previous})
+  end
   defp handle_result(result, {snmpm, if_index, direction, nil}) do
     loop({snmpm, if_index, direction, result})
   end

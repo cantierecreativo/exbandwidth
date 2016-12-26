@@ -10,6 +10,13 @@ defmodule FakeSnmpm do
     GenServer.call pid, {:get}
   end
 
+  def handle_call({:get}, _from, []) do
+    {:noreply, []}
+  end
+  def handle_call({:get}, from, [:timeout | rest]) do
+    GenServer.reply from, {:error, {:timeout, 12345}}
+    {:noreply, rest}
+  end
   def handle_call({:get}, from, [reply | rest]) do
     GenServer.reply from, {:ok, {1, 2, [{3, 4, 5, reply, 6}]}, 7}
     {:noreply, rest}
@@ -57,5 +64,26 @@ defmodule Exbandwidth.MonitorTest do
     }, 3000
     assert direction == Exbandwidth.MonitorTestData.direction
     assert bytes == (500 - 100)
+  end
+
+  @tag replies: [:noSuchInstance]
+  test "when the interface does not exist, it fails", context do
+    Process.flag(:trap_exit, true)
+
+    assert_receive(
+      {:EXIT, pid, {error, _location}},
+      3000
+    )
+    assert pid == context[:monitor_pid]
+    assert error == %RuntimeError{message: "Unknown interface"}
+  end
+
+  @tag replies: [:timeout, 20, 30]
+  test "when an SNMP request times out, it carries on" do
+    assert_receive {
+      FakeReceiver, :receive, {:traffic, direction, bytes}
+    }, 4000
+    assert direction == Exbandwidth.MonitorTestData.direction
+    assert bytes == (30 - 20)
   end
 end

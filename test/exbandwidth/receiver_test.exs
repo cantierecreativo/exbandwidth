@@ -5,6 +5,7 @@ end
 defmodule Exbandwidth.ReceiverTest do
   use ExUnit.Case, async: false
   import Exbandwidth.ReceiverTestData
+  import CaptureChildIO
 
   setup do
     {:ok, pid} = Exbandwidth.Receiver.start_link(name())
@@ -24,16 +25,12 @@ defmodule Exbandwidth.ReceiverTest do
 
   describe "handle_cast/2 - {:traffic, direction, bytes}" do
     test "prints out the supplied value", context do
-      {:ok, capture_gl} = StringIO.open("")
-      Process.group_leader(context[:receiver_pid], capture_gl)
-
-      GenServer.cast context[:receiver_pid], {:traffic, :in, 33}
-
-      :timer.sleep 100
-
-      Process.group_leader(context[:receiver_pid], Process.group_leader())
-
-      {:ok, {_, output}} = StringIO.close(capture_gl)
+      output = capture_child_io(
+        context[:receiver_pid],
+        fn ->
+          GenServer.cast context[:receiver_pid], {:traffic, :in, 33}
+          Process.sleep(10)
+        end)
 
       assert output == "in: 33B/s\n"
     end

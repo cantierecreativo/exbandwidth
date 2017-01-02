@@ -15,6 +15,6 @@ defmodule Exbandwidth.Mixfile do
   end
 
   defp deps do
-    []
+    [{:capture_child_io, "~> 0.1.0", only: :test}]
   end
 end
